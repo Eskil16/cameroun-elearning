@@ -15,14 +15,14 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-changeme-in-productio
 
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-# Railway injecte automatiquement RAILWAY_PUBLIC_DOMAIN
-RAILWAY_HOST = config('RAILWAY_PUBLIC_DOMAIN', default='')
-ALLOWED_HOSTS_DEFAULT = f'localhost,127.0.0.1,{RAILWAY_HOST}' if RAILWAY_HOST else 'localhost,127.0.0.1'
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default=ALLOWED_HOSTS_DEFAULT, cast=Csv())
-
-# Ajout automatique du domaine Railway
-if RAILWAY_HOST and RAILWAY_HOST not in ALLOWED_HOSTS:
-    ALLOWED_HOSTS.append(RAILWAY_HOST)
+# Sur Railway : accepte tous les hôtes (le domaine est dynamique)
+# En local : restreindre via la variable ALLOWED_HOSTS du .env
+DATABASE_URL = config('DATABASE_URL', default='')
+if DATABASE_URL:
+    # Mode Railway/Production : domaine inconnu à l'avance
+    ALLOWED_HOSTS = ['*']
+else:
+    ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -81,7 +81,6 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # ── Base de données ────────────────────────────────────────────────────────────
 # Railway fournit DATABASE_URL automatiquement quand PostgreSQL est attaché
-DATABASE_URL = config('DATABASE_URL', default='')
 
 if DATABASE_URL:
     # Mode Railway / Production : utilise DATABASE_URL
