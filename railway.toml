@@ -3,7 +3,7 @@ builder      = "nixpacks"
 buildCommand = "pip install -r backend/requirements.txt && cd backend && python manage.py collectstatic --noinput --clear"
 
 [deploy]
-preDeployCommand = "cd backend && python manage.py migrate --noinput"
+preDeployCommand = "cd backend && python manage.py makemigrations users courses social moderation reputation --noinput && python manage.py migrate --noinput && python init_db.py"
 startCommand     = "cd backend && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --log-level info"
 healthcheckPath    = "/health/"
 healthcheckTimeout = 30
