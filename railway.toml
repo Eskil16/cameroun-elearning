@@ -3,7 +3,7 @@ builder      = "nixpacks"
 buildCommand = "pip install -r backend/requirements.txt && cd backend && python manage.py collectstatic --noinput --clear"
 
 [deploy]
-preDeployCommand   = "cd backend && python manage.py makemigrations --noinput && python manage.py migrate --noinput && python init_db.py"
+preDeployCommand   = "cd backend && python manage.py migrate --noinput && python init_db.py"
 startCommand       = "bash start.sh"
 healthcheckPath    = "/health/"
 healthcheckTimeout = 30
