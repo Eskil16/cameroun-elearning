@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Profil — Réseau Académique Camerounais</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body style="background:#f0f2f5;">
+
+<nav class="navbar navbar-expand-lg">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="index.html"><span class="flag-cm"></span> Réseau <span>Académique</span></a>
+    <div class="d-flex gap-2 align-items-center">
+      <button class="lang-toggle" id="lang-toggle-btn">🇬🇧 EN</button>
+      <a href="index.html" class="nav-link" style="color:#fff;">← Accueil</a>
+    </div>
+  </div>
+</nav>
+
+<div id="loading-state" class="text-center py-5">
+  <div class="spinner-border" style="color:#007a3d;"></div>
+</div>
+
+<main id="profile-main" class="container py-4 d-none" style="max-width:800px;">
+
+  <!-- Hero profil -->
+  <div class="profile-hero">
+    <div class="d-flex align-items-start gap-3">
+      <div id="avatar-container">
+        <div class="profile-avatar d-flex align-items-center justify-content-center"
+             style="background:#007a3d;color:#fff;font-size:2rem;font-weight:800;" id="avatar-placeholder">
+          ?
+        </div>
+      </div>
+      <div style="flex:1;">
+        <h1 style="font-size:1.3rem;font-weight:800;margin:0;" id="profile-name">—</h1>
+        <div style="font-size:.8rem;opacity:.8;margin:.2rem 0;" id="profile-username">@—</div>
+        <div class="d-flex gap-2 flex-wrap mt-1" id="profile-badges-inline"></div>
+        <p style="font-size:.82rem;opacity:.8;margin:.5rem 0 0;" id="profile-bio"></p>
+        <div style="font-size:.82rem;margin-top:.5rem;" id="profile-skills"></div>
+      </div>
+      <div style="text-align:right;">
+        <div class="profile-score" id="profile-score">0</div>
+        <div style="font-size:.72rem;opacity:.7;" data-i18n="profile.score">Score</div>
+        <div class="trust-stars mt-1" id="profile-trust">☆</div>
+        <div id="verified-badge" class="badge-offline badge-rep mt-1 d-none">✓ Vérifié</div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="row text-center mt-3">
+      <div class="col-3">
+        <div style="font-size:1.2rem;font-weight:800;" id="stat-followers">0</div>
+        <div style="font-size:.72rem;opacity:.7;" data-i18n="profile.followers">Abonnés</div>
+      </div>
+      <div class="col-3">
+        <div style="font-size:1.2rem;font-weight:800;" id="stat-following">0</div>
+        <div style="font-size:.72rem;opacity:.7;" data-i18n="profile.following">Abonnements</div>
+      </div>
+      <div class="col-3">
+        <div style="font-size:1.2rem;font-weight:800;" id="stat-courses">0</div>
+        <div style="font-size:.72rem;opacity:.7;" data-i18n="profile.courses">Cours</div>
+      </div>
+      <div class="col-3">
+        <div style="font-size:1.2rem;font-weight:800;" id="stat-badges-count">0</div>
+        <div style="font-size:.72rem;opacity:.7;" data-i18n="profile.badges">Badges</div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="d-flex gap-2 flex-wrap mt-3" id="profile-actions"></div>
+  </div>
+
+  <!-- Badges -->
+  <div class="sidebar-section mb-3" id="badges-section">
+    <h6 data-i18n="profile.badges">Badges</h6>
+    <div id="badges-list" class="d-flex gap-2 flex-wrap">
+      <span style="font-size:.8rem;color:#888;">Aucun badge pour l'instant.</span>
+    </div>
+  </div>
+
+  <!-- Cours publiés -->
+  <div class="sidebar-section mb-3" id="courses-section">
+    <h6>📚 Cours publiés</h6>
+    <div id="profile-courses-list">
+      <span style="font-size:.8rem;color:#888;">Aucun cours publié.</span>
+    </div>
+  </div>
+
+  <!-- Historique réputation (si profil perso) -->
+  <div class="sidebar-section d-none" id="rep-history-section">
+    <h6>🏅 Historique de réputation</h6>
+    <div id="rep-history-list"></div>
+  </div>
+
+  <!-- Modal édition -->
+  <div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" data-i18n="profile.edit">Modifier le profil</h5>
+          <button class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-2">
+            <label class="form-label">Prénom / Nom</label>
+            <div class="row g-2">
+              <div class="col-6"><input type="text" id="edit-first" class="form-control form-control-sm"/></div>
+              <div class="col-6"><input type="text" id="edit-last" class="form-control form-control-sm"/></div>
+            </div>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Bio</label>
+            <textarea id="edit-bio" class="form-control form-control-sm" rows="3" maxlength="500"></textarea>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Compétences (séparées par des virgules)</label>
+            <input type="text" id="edit-skills" class="form-control form-control-sm"
+                   placeholder="Python, Django, Agriculture..."/>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Langue préférée</label>
+            <select id="edit-lang" class="form-select form-select-sm">
+              <option value="fr">Français</option>
+              <option value="en">English</option>
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Avatar</label>
+            <input type="file" id="edit-avatar" class="form-control form-control-sm" accept="image/*"/>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cam-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button class="btn-cam-primary" onclick="saveProfile()">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/offline-sync.js"></script>
+<script src="js/api.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const profileId = params.get('id');
+  const currentUser = Auth.getUser();
+  const isOwnProfile = !profileId || (currentUser && String(currentUser.id) === profileId);
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    let res;
+    if (isOwnProfile && Auth.isLoggedIn()) {
+      res = await API.fetchMe();
+      const data = res?.data;
+      renderProfile(data?.data || data);
+      loadRepHistory();
+    } else if (profileId) {
+      res = await API.getProfile(profileId);
+      const data = res?.data;
+      renderProfile(data?.data || data);
+    } else {
+      window.location.href = 'login.html';
+      return;
+    }
+    document.getElementById('loading-state').classList.add('d-none');
+    document.getElementById('profile-main').classList.remove('d-none');
+  });
+
+  function renderProfile(u) {
+    if (!u) return;
+    document.title = `${u.first_name} ${u.last_name} — Réseau Académique`;
+    document.getElementById('profile-name').textContent = `${u.first_name} ${u.last_name}`;
+    document.getElementById('profile-username').textContent = `@${u.username}`;
+    document.getElementById('profile-bio').textContent = u.bio || '';
+    document.getElementById('profile-score').textContent = u.reputation_score || 0;
+    document.getElementById('profile-trust').textContent = u.trust_score_display || '☆';
+    document.getElementById('stat-followers').textContent = u.followers_count || 0;
+    document.getElementById('stat-following').textContent = u.following_count || 0;
+    document.getElementById('stat-courses').textContent = u.courses_count || 0;
+
+    if (u.skills) {
+      document.getElementById('profile-skills').innerHTML =
+        u.skills.split(',').map(s => `<span class="badge-rep">${s.trim()}</span>`).join(' ');
+    }
+
+    if (u.is_verified) {
+      document.getElementById('verified-badge').classList.remove('d-none');
+    }
+
+    // Avatar
+    const avContainer = document.getElementById('avatar-container');
+    if (u.avatar_url) {
+      avContainer.innerHTML = `<img src="${u.avatar_url}" class="profile-avatar" alt="Avatar"/>`;
+    } else {
+      document.getElementById('avatar-placeholder').textContent =
+        (u.first_name?.[0] || '?').toUpperCase();
+    }
+
+    // Badges
+    const badgesList = document.getElementById('badges-list');
+    const inlineBadges = document.getElementById('profile-badges-inline');
+    if (u.badges?.length) {
+      badgesList.innerHTML = u.badges.map(ub => `
+        <div title="${ub.badge.description_fr}" class="badge-rep" style="cursor:default;">
+          ${ub.badge.icon} ${ub.badge.name_fr}
+        </div>`).join('');
+      document.getElementById('stat-badges-count').textContent = u.badges.length;
+      inlineBadges.innerHTML = u.badges.slice(0, 3).map(ub =>
+        `<span title="${ub.badge.name_fr}" style="font-size:1.2rem;">${ub.badge.icon}</span>`
+      ).join('');
+    }
+
+    // Actions
+    const actionsEl = document.getElementById('profile-actions');
+    if (isOwnProfile) {
+      actionsEl.innerHTML = `
+        <button class="btn-cam-primary" data-bs-toggle="modal" data-bs-target="#editModal"
+                onclick="prefillEdit(${JSON.stringify(u).replace(/'/g,'&#39;')})">
+          ✏️ Modifier le profil
+        </button>
+        <a href="create_course.html" class="btn-cam-secondary"
+           style="${['instructor','admin'].includes(u.role) ? '' : 'display:none;'}">
+          + Créer un cours
+        </a>`;
+      document.getElementById('rep-history-section').classList.remove('d-none');
+    } else {
+      actionsEl.innerHTML = `
+        <button class="btn-cam-primary" id="follow-btn" onclick="toggleFollow(${u.id})">
+          ➕ Suivre
+        </button>`;
+    }
+
+    // Cours publiés
+    loadProfileCourses(u.id, u.role);
+  }
+
+  async function loadProfileCourses(userId, role) {
+    if (!['instructor','admin'].includes(role)) return;
+    const res = await API.getCourses({ instructor: userId });
+    const list = document.getElementById('profile-courses-list');
+    const courses = res?.data?.results || [];
+    if (!courses.length) return;
+    list.innerHTML = courses.map(c => `
+      <div class="d-flex align-items-center gap-2 mb-2 pb-2 border-bottom">
+        <div style="flex:1;font-size:.85rem;">
+          <a href="course_detail.html?id=${c.id}" style="font-weight:600;">${escHtml(c.title)}</a><br/>
+          <small style="color:#888;">${c.level} · ⭐${c.average_rating?.toFixed(1)||'—'} · 👥${c.enrollment_count}</small>
+        </div>
+        <span class="badge-rep" style="font-size:.7rem;">${c.status}</span>
+      </div>`).join('');
+  }
+
+  async function loadRepHistory() {
+    const res = await API.getMyHistory();
+    const data = res?.data?.data || res?.data;
+    const list = document.getElementById('rep-history-list');
+    const events = data?.events || [];
+    if (!events.length) {
+      list.innerHTML = '<small style="color:#888;">Aucun événement.</small>';
+      return;
+    }
+    list.innerHTML = events.slice(0, 10).map(e => `
+      <div class="d-flex justify-content-between align-items-center mb-1" style="font-size:.78rem;">
+        <span>${e.description_fr || e.event_type}</span>
+        <strong style="color:${e.points>0?'#007a3d':'#ce1126'};">
+          ${e.points > 0 ? '+' : ''}${e.points} pts
+        </strong>
+      </div>`).join('');
+  }
+
+  function prefillEdit(u) {
+    document.getElementById('edit-first').value = u.first_name || '';
+    document.getElementById('edit-last').value  = u.last_name  || '';
+    document.getElementById('edit-bio').value   = u.bio        || '';
+    document.getElementById('edit-skills').value = u.skills    || '';
+    document.getElementById('edit-lang').value  = u.preferred_language || 'fr';
+  }
+
+  async function saveProfile() {
+    const fd = new FormData();
+    fd.append('first_name',         document.getElementById('edit-first').value);
+    fd.append('last_name',          document.getElementById('edit-last').value);
+    fd.append('bio',                document.getElementById('edit-bio').value);
+    fd.append('skills',             document.getElementById('edit-skills').value);
+    fd.append('preferred_language', document.getElementById('edit-lang').value);
+    const avatar = document.getElementById('edit-avatar').files?.[0];
+    if (avatar) fd.append('avatar', avatar);
+
+    const res = await apiFetch('/users/me/', { method: 'PATCH', body: fd });
+    bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+    if (res?.ok) { showToast('Profil mis à jour.'); location.reload(); }
+    else showToast(res?.data?.message || window.i18n.t('error.generic'), 'error');
+  }
+
+  async function toggleFollow(userId) {
+    if (!Auth.isLoggedIn()) { window.location.href = 'login.html'; return; }
+    const btn = document.getElementById('follow-btn');
+    const isFollowing = btn.textContent.includes('Ne plus');
+    const res = isFollowing
+      ? await API.unfollowUser(userId)
+      : await API.followUser(userId);
+    if (res?.ok) {
+      btn.textContent = isFollowing ? '➕ Suivre' : '✓ Ne plus suivre';
+      showToast(res.data?.message || '');
+    }
+  }
+
+  function escHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  async function apiFetch(endpoint, options = {}) {
+    const headers = {};
+    if (!(options.body instanceof FormData)) headers['Content-Type'] = 'application/json';
+    const token = Auth.getAccessToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    try {
+      const res = await fetch(`/api/v1${endpoint}`, { ...options, headers: { ...headers, ...options.headers } });
+      const data = await res.json();
+      return { ok: res.ok, status: res.status, data };
+    } catch { return { ok: false, status: 0, data: null }; }
+  }
+</script>
+</body>
+</html>

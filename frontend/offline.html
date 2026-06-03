@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Hors ligne — Réseau Académique Camerounais</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    body { min-height:100vh; display:flex; flex-direction:column; background:#1a1a2e; color:#fff; }
+    .offline-container { flex:1; display:flex; align-items:center; justify-content:center; padding:2rem; }
+    .offline-card { max-width:440px; text-align:center; }
+    .offline-icon { font-size:5rem; margin-bottom:1rem; animation:pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.6;} }
+  </style>
+</head>
+<body>
+
+<nav style="background:rgba(255,255,255,.05);padding:.75rem 1rem;display:flex;align-items:center;gap:.5rem;">
+  <span class="flag-cm"></span>
+  <strong style="color:#fcd116;">Réseau Académique Camerounais</strong>
+</nav>
+
+<div class="offline-container">
+  <div class="offline-card">
+    <div class="offline-icon">📴</div>
+    <h1 style="font-size:1.6rem;font-weight:800;" data-i18n="offline.title">Vous êtes hors ligne</h1>
+    <p style="opacity:.75;margin:1rem 0;" data-i18n="offline.msg">
+      Pas d'inquiétude — vos cours téléchargés restent accessibles.
+    </p>
+
+    <!-- Cours téléchargés -->
+    <div id="downloaded-section" style="display:none;background:rgba(255,255,255,.08);
+         border-radius:.75rem;padding:1rem;margin:1.5rem 0;text-align:left;">
+      <div style="font-size:.85rem;font-weight:700;margin-bottom:.75rem;">
+        📚 Modules disponibles hors ligne
+      </div>
+      <div id="downloaded-list"></div>
+    </div>
+
+    <!-- Aucun cours offline -->
+    <div id="no-downloads" style="background:rgba(255,255,255,.05);border-radius:.75rem;
+         padding:1rem;margin:1.5rem 0;">
+      <div style="font-size:.85rem;opacity:.7;">
+        💡 Vous n'avez pas encore téléchargé de modules.<br/>
+        <small>Quand vous êtes en ligne, ouvrez un cours et cliquez sur ⬇️ Télécharger hors ligne.</small>
+      </div>
+    </div>
+
+    <!-- Progression locale non synchronisée -->
+    <div id="pending-sync" style="display:none;background:rgba(252,209,22,.1);
+         border:1px solid rgba(252,209,22,.3);border-radius:.75rem;padding:1rem;margin:1rem 0;
+         text-align:left;font-size:.78rem;">
+      <strong style="color:#fcd116;">⏳ Synchronisation en attente</strong><br/>
+      <span id="pending-count" style="opacity:.8;"></span>
+    </div>
+
+    <div style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;margin-top:1.5rem;">
+      <a href="index.html" class="btn-cam-secondary" data-i18n="offline.go_home">
+        Revenir à l'accueil
+      </a>
+      <button onclick="location.reload()" class="btn-cam-primary">
+        🔄 Réessayer
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="js/i18n.js"></script>
+<script src="js/offline-sync.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Cours téléchargés
+    const downloaded = DownloadedCourses.getAll();
+    if (downloaded.length > 0) {
+      document.getElementById('downloaded-section').style.display = 'block';
+      document.getElementById('no-downloads').style.display = 'none';
+      const list = document.getElementById('downloaded-list');
+      list.innerHTML = downloaded.map(m => `
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;padding:.5rem;
+                    background:rgba(255,255,255,.05);border-radius:.4rem;">
+          <div style="font-size:1.2rem;">📴</div>
+          <div style="flex:1;">
+            <div style="font-size:.82rem;font-weight:600;">${m.title || 'Module'}</div>
+            <div style="font-size:.72rem;opacity:.6;">Téléchargé le ${new Date(m.downloadedAt).toLocaleDateString('fr-CM')}</div>
+          </div>
+          ${m.videoUrl ? `<a href="${m.videoUrl}" style="font-size:.75rem;color:#fcd116;">▶️ Voir</a>` : ''}
+          ${m.pdfUrl ? `<a href="${m.pdfUrl}" target="_blank" style="font-size:.75rem;color:#fcd116;">📄 PDF</a>` : ''}
+        </div>`).join('');
+    }
+
+    // File d'attente
+    const queue = OfflineQueue.getAll();
+    const offlineProg = Object.keys(OfflineProgress.get()).length;
+    const total = queue.length + offlineProg;
+    if (total > 0) {
+      document.getElementById('pending-sync').style.display = 'block';
+      document.getElementById('pending-count').textContent =
+        `${total} action(s) seront synchronisées à la reconnexion.`;
+    }
+
+    // Redirection auto si online
+    window.addEventListener('online', () => {
+      setTimeout(() => window.location.href = 'index.html', 1500);
+    });
+    if (navigator.onLine) window.location.href = 'index.html';
+  });
+</script>
+</body>
+</html>

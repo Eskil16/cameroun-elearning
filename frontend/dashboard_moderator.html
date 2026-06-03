@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Modération — Réseau Académique Camerounais</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body style="background:#f0f2f5;">
+
+<nav class="navbar navbar-expand-lg">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="index.html"><span class="flag-cm"></span> Réseau <span>Académique</span></a>
+    <div class="d-flex gap-2 align-items-center">
+      <button class="lang-toggle" id="lang-toggle-btn">🇬🇧 EN</button>
+      <a href="index.html" class="nav-link" style="color:#fff;">← Accueil</a>
+      <button onclick="API.logout()" class="btn-cam-secondary btn-sm" style="border-color:rgba(255,255,255,.3);color:#fff;">
+        Déconnexion
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- Accès refusé -->
+<div id="access-denied" class="d-none text-center py-5">
+  <div style="font-size:3rem;">🔒</div>
+  <h3>Accès refusé / Access denied</h3>
+  <p style="color:#666;">Vous devez être modérateur ou admin.<br/>You must be a moderator or admin.</p>
+  <a href="index.html" class="btn-cam-primary">← Retour à l'accueil</a>
+</div>
+
+<main id="mod-main" class="container py-4 d-none">
+
+  <!-- En-tête -->
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+      <h1 style="font-size:1.3rem;font-weight:800;margin:0;" data-i18n="mod.title">
+        Tableau de bord — Modération
+      </h1>
+      <p style="color:#666;font-size:.82rem;margin:.3rem 0 0;">
+        Chargement par lots de 10 — optimisé pour les connexions lentes.
+        Loading in batches of 10 — optimized for slow connections.
+      </p>
+    </div>
+    <button class="btn-cam-secondary btn-sm" onclick="loadQueue()">🔄 Actualiser</button>
+  </div>
+
+  <!-- Compteurs -->
+  <div class="row g-3 mb-4">
+    <div class="col-4">
+      <div class="bg-white rounded-3 shadow-sm p-3 text-center">
+        <div style="font-size:1.8rem;font-weight:800;color:#fd7e14;" id="count-pending">—</div>
+        <div style="font-size:.75rem;color:#666;" data-i18n="mod.pending">En attente</div>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="bg-white rounded-3 shadow-sm p-3 text-center">
+        <div style="font-size:1.8rem;font-weight:800;color:#ce1126;" id="count-quarantine">—</div>
+        <div style="font-size:.75rem;color:#666;" data-i18n="mod.quarantine">Quarantaine</div>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="bg-white rounded-3 shadow-sm p-3 text-center">
+        <div style="font-size:1.8rem;font-weight:800;color:#007a3d;" id="count-approved">—</div>
+        <div style="font-size:.75rem;color:#666;">Approuvés</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtres -->
+  <div class="d-flex gap-2 mb-3">
+    <button class="cat-pill active" onclick="setFilter('all', this)">Tous</button>
+    <button class="cat-pill" onclick="setFilter('pending', this)" data-i18n="mod.pending">En attente</button>
+    <button class="cat-pill" onclick="setFilter('quarantine', this)" data-i18n="mod.quarantine">Quarantaine</button>
+  </div>
+
+  <!-- File de modération -->
+  <div id="queue-container">
+    <div class="text-center py-4" id="queue-loading">
+      <div class="spinner-border" style="color:#007a3d;"></div>
+    </div>
+  </div>
+
+  <!-- Pagination par lots de 10 -->
+  <div class="d-flex gap-2 justify-content-center mt-3">
+    <button class="btn-cam-secondary btn-sm d-none" id="prev-btn" onclick="changePage(-1)">← Précédent</button>
+    <button class="btn-cam-secondary btn-sm d-none" id="next-btn" onclick="changePage(1)">Suivant →</button>
+  </div>
+
+</main>
+
+<!-- Modal Décision -->
+<div class="modal fade" id="reviewModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header" id="review-modal-header">
+        <h5 class="modal-title">Avis de modération</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Détails cours -->
+        <div id="review-course-details" class="mb-3 p-3 rounded" style="background:#f8f9fa;font-size:.85rem;"></div>
+
+        <div class="mb-3">
+          <label class="form-label">Votre décision / Your decision</label>
+          <div class="d-flex gap-2">
+            <button class="btn-cam-primary flex-1" onclick="setDecision('approve')"
+                    id="btn-approve" data-i18n="mod.approve">✅ Approuver</button>
+            <button class="btn-cam-secondary flex-1" onclick="setDecision('reject')"
+                    id="btn-reject" style="border-color:#ce1126;color:#ce1126;" data-i18n="mod.reject">
+              ❌ Rejeter
+            </button>
+          </div>
+        </div>
+
+        <div class="mb-3" id="reason-section" style="display:none;">
+          <label class="form-label" data-i18n="mod.reason">Motif de rejet *</label>
+          <textarea id="review-comment" class="form-control" rows="3"
+                    placeholder="Expliquez pourquoi ce cours est rejeté..."></textarea>
+        </div>
+
+        <div id="review-msg" class="mt-2" style="font-size:.82rem;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cam-secondary" data-bs-dismiss="modal" data-i18n="btn.cancel">Annuler</button>
+        <button class="btn-cam-primary" id="confirm-review-btn" onclick="confirmReview()" disabled>
+          Confirmer la décision
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/offline-sync.js"></script>
+<script src="js/api.js"></script>
+<script>
+  // Auth check
+  const user = Auth.getUser();
+  if (!user || !['moderator', 'admin'].includes(user.role)) {
+    document.getElementById('access-denied').classList.remove('d-none');
+  } else {
+    document.getElementById('mod-main').classList.remove('d-none');
+    loadQueue();
+  }
+
+  let allCourses = [];
+  let filtered   = [];
+  let currentPage = 1;
+  const PAGE_SIZE = 10;
+  let currentFilter = 'all';
+  let selectedCourse = null;
+  let selectedDecision = null;
+
+  async function loadQueue() {
+    const container = document.getElementById('queue-container');
+    container.innerHTML = '<div class="text-center py-4"><div class="spinner-border" style="color:#007a3d;"></div></div>';
+
+    const res = await API.getModerationQueue();
+    if (!res?.ok) {
+      container.innerHTML = '<div class="text-center py-3 text-danger">Erreur de chargement.</div>';
+      return;
+    }
+
+    const data = res.data?.data || res.data;
+    allCourses = data?.results || data || [];
+
+    // Compteurs
+    document.getElementById('count-pending').textContent = allCourses.filter(c => c.status === 'pending').length;
+    document.getElementById('count-quarantine').textContent = allCourses.filter(c => c.status === 'quarantine').length;
+    document.getElementById('count-approved').textContent = '—';
+
+    applyFilter();
+  }
+
+  function setFilter(filter, el) {
+    currentFilter = filter;
+    currentPage = 1;
+    document.querySelectorAll('.cat-pill').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    applyFilter();
+  }
+
+  function applyFilter() {
+    if (currentFilter === 'all') filtered = [...allCourses];
+    else filtered = allCourses.filter(c => c.status === currentFilter);
+    renderPage();
+  }
+
+  function changePage(dir) {
+    const maxPage = Math.ceil(filtered.length / PAGE_SIZE);
+    currentPage = Math.max(1, Math.min(maxPage, currentPage + dir));
+    renderPage();
+  }
+
+  function renderPage() {
+    const container = document.getElementById('queue-container');
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const page  = filtered.slice(start, start + PAGE_SIZE);
+
+    if (!filtered.length) {
+      container.innerHTML = `
+        <div class="text-center py-5">
+          <div style="font-size:3rem;">✅</div>
+          <p data-i18n="mod.empty">Aucun cours à modérer.</p>
+        </div>`;
+      document.getElementById('prev-btn').classList.add('d-none');
+      document.getElementById('next-btn').classList.add('d-none');
+      return;
+    }
+
+    container.innerHTML = page.map(c => renderModCard(c)).join('');
+
+    const maxPage = Math.ceil(filtered.length / PAGE_SIZE);
+    document.getElementById('prev-btn').classList.toggle('d-none', currentPage <= 1);
+    document.getElementById('next-btn').classList.toggle('d-none', currentPage >= maxPage);
+  }
+
+  function renderModCard(c) {
+    const statusClass = c.status === 'quarantine' ? 'quarantine' : 'pending';
+    const statusColor = c.status === 'quarantine' ? '#ce1126' : '#fd7e14';
+    const lang = window.i18n.lang;
+
+    return `
+    <div class="mod-card ${statusClass}" id="mod-card-${c.id}">
+      <div class="d-flex align-items-start gap-2 mb-2">
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:.9rem;">${escHtml(c.title)}</div>
+          <div style="font-size:.75rem;color:#666;">
+            👤 ${escHtml(c.instructor?.first_name||'')} ${escHtml(c.instructor?.last_name||'')}
+            · 📚 ${c.category?.name_fr || '—'}
+            · 📊 ${c.level} · 🌐 ${c.language}
+          </div>
+        </div>
+        <div class="text-end">
+          <span class="badge-rep" style="background:${statusColor};color:#fff;">
+            ${c.status === 'quarantine' ? '⚠️ Quarantaine' : '🕐 En attente'}
+          </span>
+          ${c.status === 'quarantine' ? `<div style="font-size:.72rem;color:#ce1126;margin-top:.2rem;">🚩 ${c.report_count} signalement(s)</div>` : ''}
+        </div>
+      </div>
+
+      <p style="font-size:.78rem;color:#555;margin:.3rem 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+        ${escHtml(c.description)}
+      </p>
+
+      <div class="d-flex gap-2 flex-wrap mt-2">
+        <span class="badge-rep">${c.is_low_bandwidth ? '📡 Bas débit' : `📦 ${c.total_size_mb?.toFixed(1)||0} Mo`}</span>
+        <span class="badge-rep">📅 ${new Date(c.created_at).toLocaleDateString('fr-CM')}</span>
+        ${c.modules_count ? `<span class="badge-rep">📚 ${c.modules_count} modules</span>` : ''}
+      </div>
+
+      <div class="d-flex gap-2 mt-3">
+        <a href="course_detail.html?id=${c.id}" target="_blank" class="btn-cam-secondary btn-sm">
+          👁 Prévisualiser
+        </a>
+        <button class="btn-cam-primary btn-sm" onclick='openReviewModal(${JSON.stringify(c).replace(/'/g,"&#39;")})'>
+          ⚖️ Donner un avis
+        </button>
+      </div>
+    </div>`;
+  }
+
+  function openReviewModal(course) {
+    selectedCourse = course;
+    selectedDecision = null;
+
+    document.getElementById('review-modal-header').innerHTML = `
+      <h5 class="modal-title">⚖️ ${escHtml(course.title)}</h5>
+      <button class="btn-close" data-bs-dismiss="modal"></button>`;
+
+    document.getElementById('review-course-details').innerHTML = `
+      <div class="row g-2">
+        <div class="col-12"><strong>${escHtml(course.title)}</strong></div>
+        <div class="col-6">👤 ${escHtml(course.instructor?.first_name||'')} ${escHtml(course.instructor?.last_name||'')}</div>
+        <div class="col-6">📊 ${course.level} · 🌐 ${course.language}</div>
+        <div class="col-12" style="font-size:.78rem;color:#555;">${escHtml(course.description?.substring(0,200))}...</div>
+        <div class="col-6">📦 ${course.total_size_mb?.toFixed(1)||0} Mo</div>
+        <div class="col-6">🚩 ${course.report_count||0} signalement(s)</div>
+        <div class="col-6">⚖️ Statut : <strong>${course.status}</strong></div>
+        <div class="col-6">📅 ${new Date(course.created_at).toLocaleDateString('fr-CM')}</div>
+      </div>`;
+
+    document.getElementById('btn-approve').classList.remove('active-decision');
+    document.getElementById('btn-reject').classList.remove('active-decision');
+    document.getElementById('reason-section').style.display = 'none';
+    document.getElementById('confirm-review-btn').disabled = true;
+    document.getElementById('review-msg').textContent = '';
+    document.getElementById('review-comment').value = '';
+
+    new bootstrap.Modal(document.getElementById('reviewModal')).show();
+  }
+
+  function setDecision(decision) {
+    selectedDecision = decision;
+    document.getElementById('btn-approve').style.background = decision === 'approve' ? '#007a3d' : '';
+    document.getElementById('btn-reject').style.background  = decision === 'reject'  ? '#ce1126' : '';
+    document.getElementById('btn-reject').style.color       = decision === 'reject'  ? '#fff' : '';
+    document.getElementById('reason-section').style.display = decision === 'reject' ? 'block' : 'none';
+    document.getElementById('confirm-review-btn').disabled = false;
+  }
+
+  async function confirmReview() {
+    if (!selectedCourse || !selectedDecision) return;
+
+    const comment = document.getElementById('review-comment').value.trim();
+    if (selectedDecision === 'reject' && !comment) {
+      document.getElementById('review-msg').textContent =
+        'Veuillez préciser le motif de rejet. / Please provide a rejection reason.';
+      document.getElementById('review-msg').style.color = '#ce1126';
+      return;
+    }
+
+    const btn = document.getElementById('confirm-review-btn');
+    btn.disabled = true;
+    btn.textContent = 'Traitement...';
+
+    const res = await API.reviewCourse(selectedCourse.id, selectedDecision, comment);
+    btn.textContent = 'Confirmer la décision';
+    btn.disabled = false;
+
+    const msgEl = document.getElementById('review-msg');
+    if (res?.ok) {
+      msgEl.style.color = '#007a3d';
+      msgEl.textContent = res.data?.message || 'Avis enregistré.';
+      // Retirer la carte de la liste
+      setTimeout(() => {
+        bootstrap.Modal.getInstance(document.getElementById('reviewModal')).hide();
+        allCourses = allCourses.filter(c => c.id !== selectedCourse.id);
+        applyFilter();
+        // Mise à jour compteurs
+        document.getElementById('count-pending').textContent =
+          allCourses.filter(c => c.status === 'pending').length;
+        document.getElementById('count-quarantine').textContent =
+          allCourses.filter(c => c.status === 'quarantine').length;
+        showToast(res.data?.message || 'Avis enregistré.');
+      }, 1000);
+    } else {
+      msgEl.style.color = '#ce1126';
+      msgEl.textContent = res?.data?.message || window.i18n.t('error.generic');
+    }
+  }
+
+  function escHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+</body>
+</html>

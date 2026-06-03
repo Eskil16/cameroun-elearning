@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Créer un cours — Réseau Académique Camerounais</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body style="background:#f0f2f5;">
+
+<nav class="navbar">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="index.html"><span class="flag-cm"></span> Réseau <span>Académique</span></a>
+    <button class="lang-toggle" id="lang-toggle-btn">🇬🇧 EN</button>
+  </div>
+</nav>
+
+<div class="container py-4" style="max-width:700px;">
+  <div class="bg-white rounded-3 shadow-sm p-4">
+    <h1 style="font-size:1.3rem;font-weight:800;margin-bottom:.25rem;" data-i18n="create.title">
+      Créer un nouveau cours
+    </h1>
+    <p style="color:#666;font-size:.82rem;margin-bottom:1.5rem;">
+      Votre cours sera examiné par un modérateur avant publication.
+      A moderator will review your course before publishing.
+    </p>
+
+    <div id="error-msg" class="alert alert-danger d-none"></div>
+    <div id="success-msg" class="alert alert-success d-none"></div>
+
+    <!-- Étape 1 : Infos du cours -->
+    <div id="step-1">
+      <h6 class="mb-3" style="color:#007a3d;border-bottom:2px solid #007a3d;padding-bottom:.5rem;">
+        Étape 1 / Step 1 — Informations générales
+      </h6>
+
+      <div class="mb-3">
+        <label class="form-label" data-i18n="create.course_title">Titre du cours *</label>
+        <input type="text" id="title" class="form-control" required
+               placeholder="Ex: Introduction à Python pour l'Afrique" maxlength="200"/>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label" data-i18n="create.description">Description *</label>
+        <textarea id="description" class="form-control" rows="4" required
+                  placeholder="Décrivez votre cours en détail..."></textarea>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <label class="form-label" data-i18n="create.category">Catégorie *</label>
+          <select id="category" class="form-select" required></select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label" data-i18n="create.level">Niveau *</label>
+          <select id="level" class="form-select">
+            <option value="beginner">Débutant / Beginner</option>
+            <option value="intermediate">Intermédiaire / Intermediate</option>
+            <option value="expert">Expert</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label" data-i18n="create.language">Langue *</label>
+          <select id="language" class="form-select">
+            <option value="fr">Français</option>
+            <option value="en">English</option>
+            <option value="both">🇨🇲 Bilingue / Bilingual</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label" data-i18n="create.thumbnail">Image de couverture</label>
+        <div class="upload-zone" id="thumbnail-zone" onclick="document.getElementById('thumbnail-input').click()">
+          <input type="file" id="thumbnail-input" accept="image/*" onchange="previewThumbnail(this)"/>
+          <div id="thumbnail-preview">
+            <div style="font-size:2rem;">🖼️</div>
+            <div style="font-size:.85rem;color:#666;">Cliquez ou glissez une image ici</div>
+            <div style="font-size:.75rem;color:#999;">JPG, PNG — max 5 Mo</div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-cam-primary" onclick="proceedToModules()">
+        Continuer → Ajouter des modules
+      </button>
+    </div>
+
+    <!-- Étape 2 : Modules -->
+    <div id="step-2" class="d-none">
+      <h6 class="mb-3" style="color:#007a3d;border-bottom:2px solid #007a3d;padding-bottom:.5rem;">
+        Étape 2 / Step 2 — Modules du cours
+      </h6>
+
+      <div id="modules-container">
+        <!-- Modules ajoutés dynamiquement -->
+      </div>
+
+      <button class="btn-cam-secondary mb-3" onclick="addModuleForm()" data-i18n="create.add_module">
+        + Ajouter un module
+      </button>
+
+      <div class="d-flex gap-2">
+        <button class="btn-cam-secondary" onclick="goBackToStep1()">← Retour</button>
+        <button class="btn-cam-primary" id="submit-btn" onclick="submitCourse()">
+          <span data-i18n="create.submit">Soumettre pour validation</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Conseils -->
+  <div class="sidebar-section mt-3">
+    <h6>💡 Conseils pour un cours de qualité</h6>
+    <ul style="font-size:.78rem;color:#555;padding-left:1rem;">
+      <li>Visez des modules de moins de <strong>15 Mo</strong> pour le bas débit 📡</li>
+      <li>Activez le téléchargement hors ligne 📴</li>
+      <li>Ajoutez un PDF en complément de la vidéo</li>
+      <li>Les cours bilingues 🇨🇲 obtiennent +30% de vues</li>
+      <li>Nommez vos modules de façon claire et progressive</li>
+    </ul>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/offline-sync.js"></script>
+<script src="js/api.js"></script>
+<script>
+  // Vérification auth
+  if (!Auth.isLoggedIn()) window.location.href = 'login.html?next=create_course.html';
+  const user = Auth.getUser();
+  if (user && !['instructor','admin'].includes(user.role)) {
+    document.getElementById('error-msg').textContent =
+      'Seuls les formateurs peuvent créer des cours. / Only instructors can create courses.';
+    document.getElementById('error-msg').classList.remove('d-none');
+  }
+
+  let createdCourseId = null;
+  let moduleCount = 0;
+
+  // Chargement catégories
+  document.addEventListener('DOMContentLoaded', async () => {
+    const res = await API.getCategories();
+    const sel = document.getElementById('category');
+    (res?.data || []).forEach(cat => {
+      const opt = document.createElement('option');
+      opt.value = cat.id;
+      opt.textContent = `${cat.icon} ${window.i18n.lang === 'en' ? cat.name_en : cat.name_fr}`;
+      sel.appendChild(opt);
+    });
+
+    // Drag & drop thumbnail
+    const zone = document.getElementById('thumbnail-zone');
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault(); zone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) {
+        const dt = new DataTransfer(); dt.items.add(file);
+        document.getElementById('thumbnail-input').files = dt.files;
+        previewThumbnail({ files: [file] });
+      }
+    });
+  });
+
+  function previewThumbnail(input) {
+    const file = input.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById('thumbnail-preview').innerHTML =
+        `<img src="${e.target.result}" style="max-height:120px;border-radius:.5rem;"/>`;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function proceedToModules() {
+    const title = document.getElementById('title').value.trim();
+    const desc  = document.getElementById('description').value.trim();
+    if (!title || !desc) {
+      document.getElementById('error-msg').textContent =
+        'Le titre et la description sont obligatoires. / Title and description are required.';
+      document.getElementById('error-msg').classList.remove('d-none');
+      return;
+    }
+    document.getElementById('error-msg').classList.add('d-none');
+    document.getElementById('step-1').classList.add('d-none');
+    document.getElementById('step-2').classList.remove('d-none');
+    if (moduleCount === 0) addModuleForm();
+  }
+
+  function goBackToStep1() {
+    document.getElementById('step-2').classList.add('d-none');
+    document.getElementById('step-1').classList.remove('d-none');
+  }
+
+  function addModuleForm() {
+    moduleCount++;
+    const idx = moduleCount;
+    const div = document.createElement('div');
+    div.id = `module-form-${idx}`;
+    div.className = 'bg-light rounded-3 p-3 mb-3 border';
+    div.innerHTML = `
+      <div class="d-flex justify-content-between mb-2">
+        <strong style="font-size:.85rem;">Module ${idx}</strong>
+        <button type="button" onclick="removeModule(${idx})"
+                style="background:none;border:none;color:#ce1126;cursor:pointer;font-size:.8rem;">✕ Supprimer</button>
+      </div>
+      <div class="mb-2">
+        <input type="text" class="form-control form-control-sm" placeholder="Titre du module *"
+               id="mod-title-${idx}" required/>
+      </div>
+      <div class="mb-2">
+        <textarea class="form-control form-control-sm" rows="2" placeholder="Description (optionnel)"
+                  id="mod-desc-${idx}"></textarea>
+      </div>
+      <div class="row g-2 mb-2">
+        <div class="col-6">
+          <label style="font-size:.75rem;">Vidéo MP4 (max 300 Mo)</label>
+          <input type="file" class="form-control form-control-sm" accept="video/mp4,video/webm"
+                 id="mod-video-${idx}" onchange="checkFileSize(this, 300)"/>
+          <div id="mod-video-size-${idx}" style="font-size:.72rem;color:#888;"></div>
+        </div>
+        <div class="col-6">
+          <label style="font-size:.75rem;">PDF (max 20 Mo)</label>
+          <input type="file" class="form-control form-control-sm" accept="application/pdf"
+                 id="mod-pdf-${idx}" onchange="checkFileSize(this, 20)"/>
+          <div id="mod-pdf-size-${idx}" style="font-size:.72rem;color:#888;"></div>
+        </div>
+      </div>
+      <div class="row g-2">
+        <div class="col-6">
+          <input type="number" class="form-control form-control-sm" placeholder="Durée (min)"
+                 id="mod-duration-${idx}" min="1" max="300"/>
+        </div>
+        <div class="col-6 d-flex align-items-center gap-2">
+          <input type="checkbox" class="form-check-input" id="mod-dl-${idx}" checked/>
+          <label class="form-check-label" style="font-size:.75rem;" for="mod-dl-${idx}">
+            📴 Hors ligne disponible
+          </label>
+        </div>
+      </div>
+    `;
+    document.getElementById('modules-container').appendChild(div);
+  }
+
+  function removeModule(idx) {
+    document.getElementById(`module-form-${idx}`)?.remove();
+  }
+
+  function checkFileSize(input, maxMb) {
+    const file = input.files?.[0];
+    if (!file) return;
+    const mb = file.size / 1024 / 1024;
+    const isVideo = input.id.includes('video');
+    const sizeEl = document.getElementById(input.id.replace('mod-video-','mod-video-size-').replace('mod-pdf-','mod-pdf-size-'));
+    if (!sizeEl) return;
+    if (mb > maxMb) {
+      sizeEl.style.color = '#ce1126';
+      sizeEl.textContent = `⚠️ Fichier trop grand : ${mb.toFixed(1)} Mo (max ${maxMb} Mo)`;
+      input.value = '';
+    } else {
+      sizeEl.style.color = '#007a3d';
+      sizeEl.textContent = `✓ ${mb.toFixed(1)} Mo${mb < 15 ? ' — 📡 Optimisé bas débit' : ''}`;
+    }
+  }
+
+  async function submitCourse() {
+    const errEl = document.getElementById('error-msg');
+    const okEl  = document.getElementById('success-msg');
+    errEl.classList.add('d-none');
+    okEl.classList.add('d-none');
+
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.textContent = window.i18n.t('btn.loading');
+
+    // Création du cours
+    const formData = new FormData();
+    formData.append('title',       document.getElementById('title').value.trim());
+    formData.append('description', document.getElementById('description').value.trim());
+    formData.append('category',    document.getElementById('category').value);
+    formData.append('level',       document.getElementById('level').value);
+    formData.append('language',    document.getElementById('language').value);
+    const thumb = document.getElementById('thumbnail-input').files?.[0];
+    if (thumb) formData.append('thumbnail', thumb);
+
+    const res = await API.createCourse(formData);
+    if (!res?.ok) {
+      errEl.textContent = res?.data?.message || window.i18n.t('error.generic');
+      errEl.classList.remove('d-none');
+      btn.disabled = false;
+      btn.textContent = window.i18n.t('create.submit');
+      return;
+    }
+
+    createdCourseId = res.data?.data?.id || res.data?.id;
+
+    // Ajout des modules
+    const modForms = document.querySelectorAll('[id^="module-form-"]');
+    for (const form of modForms) {
+      const idx = form.id.replace('module-form-', '');
+      const modTitle = document.getElementById(`mod-title-${idx}`)?.value.trim();
+      if (!modTitle) continue;
+
+      const mfd = new FormData();
+      mfd.append('title',           modTitle);
+      mfd.append('description',     document.getElementById(`mod-desc-${idx}`)?.value || '');
+      mfd.append('order',           idx);
+      mfd.append('duration_minutes',document.getElementById(`mod-duration-${idx}`)?.value || 0);
+      mfd.append('is_downloadable', document.getElementById(`mod-dl-${idx}`)?.checked ? 'true' : 'false');
+      const vid = document.getElementById(`mod-video-${idx}`)?.files?.[0];
+      const pdf = document.getElementById(`mod-pdf-${idx}`)?.files?.[0];
+      if (vid) mfd.append('video', vid);
+      if (pdf) mfd.append('pdf', pdf);
+
+      await API.addModule(createdCourseId, mfd);
+    }
+
+    btn.disabled = false;
+    okEl.textContent = res.data?.message || 'Cours soumis pour validation. En attente d\'un modérateur.';
+    okEl.classList.remove('d-none');
+    btn.textContent = '✓ Soumis';
+
+    setTimeout(() => window.location.href = `course_detail.html?id=${createdCourseId}`, 2000);
+  }
+</script>
+</body>
+</html>

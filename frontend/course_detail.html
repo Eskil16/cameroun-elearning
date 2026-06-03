@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cours — Réseau Académique Camerounais</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body style="background:#f0f2f5;">
+
+<nav class="navbar navbar-expand-lg">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="index.html"><span class="flag-cm"></span> Réseau <span>Académique</span></a>
+    <div class="d-flex align-items-center gap-2">
+      <button class="lang-toggle" id="lang-toggle-btn">🇬🇧 EN</button>
+      <a href="index.html" class="nav-link" style="color:#fff;">← Catalogue</a>
+    </div>
+  </div>
+</nav>
+
+<div id="loading-state" class="text-center py-5">
+  <div class="spinner-border" style="color:#007a3d;" role="status"></div>
+  <p class="mt-2" style="color:#666;">Chargement...</p>
+</div>
+
+<main id="course-main" class="d-none">
+  <div class="container py-4">
+    <div class="row g-4">
+
+      <!-- Colonne gauche : infos cours -->
+      <div class="col-lg-8">
+        <!-- En-tête -->
+        <div class="bg-white rounded-3 shadow-sm p-3 mb-3">
+          <div class="d-flex gap-2 flex-wrap mb-2" id="course-badges"></div>
+          <h1 id="course-title" style="font-size:1.4rem;font-weight:800;"></h1>
+          <p id="course-description" style="color:#555;font-size:.9rem;"></p>
+
+          <div class="d-flex flex-wrap gap-3 mb-3" style="font-size:.82rem;color:#666;">
+            <span>👤 <strong id="instructor-name"></strong></span>
+            <span>📊 <span id="course-level"></span></span>
+            <span>🌐 <span id="course-lang"></span></span>
+            <span>📦 <span id="course-size"></span></span>
+            <span>⭐ <span id="course-rating"></span></span>
+            <span>👥 <span id="course-enrolled"></span> inscrits</span>
+          </div>
+
+          <!-- Boutons action -->
+          <div class="d-flex gap-2 flex-wrap">
+            <button id="enroll-btn" class="btn-cam-primary" onclick="enrollCourse()">
+              S'inscrire gratuitement
+            </button>
+            <button id="report-btn" class="btn-cam-secondary btn-sm" data-bs-toggle="modal"
+                    data-bs-target="#reportModal">
+              🚩 Signaler
+            </button>
+          </div>
+        </div>
+
+        <!-- Progression globale -->
+        <div id="progress-section" class="bg-white rounded-3 shadow-sm p-3 mb-3 d-none">
+          <div class="d-flex justify-content-between mb-1">
+            <strong style="font-size:.85rem;" data-i18n="course.progress">Ma progression</strong>
+            <span id="overall-pct" style="font-size:.85rem;color:#007a3d;">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-bar-cam" id="overall-bar" style="width:0;"></div>
+          </div>
+        </div>
+
+        <!-- Lecteur vidéo -->
+        <div id="player-section" class="bg-white rounded-3 shadow-sm mb-3 d-none">
+          <div class="p-3 border-bottom">
+            <h5 id="current-module-title" style="font-size:.95rem;font-weight:700;margin:0;"></h5>
+          </div>
+          <div style="background:#000;position:relative;aspect-ratio:16/9;">
+            <video id="video-player" controls style="width:100%;height:100%;display:block;"
+                   preload="metadata">
+              Votre navigateur ne supporte pas la lecture vidéo.
+            </video>
+            <div id="no-video" class="d-none" style="position:absolute;inset:0;
+              display:flex;align-items:center;justify-content:center;background:#111;color:#fff;font-size:.9rem;">
+              📄 Ce module contient uniquement un document PDF.
+            </div>
+          </div>
+          <div class="p-3 d-flex gap-2 flex-wrap">
+            <a id="pdf-link" class="btn-cam-secondary btn-sm d-none" target="_blank">
+              📄 Ouvrir le PDF
+            </a>
+            <button id="download-btn" class="btn-cam-secondary btn-sm d-none"
+                    onclick="downloadCurrentModule()">
+              ⬇️ Télécharger hors ligne
+            </button>
+          </div>
+        </div>
+
+        <!-- Section notation -->
+        <div id="rating-section" class="bg-white rounded-3 shadow-sm p-3 mb-3 d-none">
+          <h6 data-i18n="course.rate">Noter ce cours</h6>
+          <div class="star-rating mb-2" id="star-rating-input">
+            <span class="star" data-val="1">★</span>
+            <span class="star" data-val="2">★</span>
+            <span class="star" data-val="3">★</span>
+            <span class="star" data-val="4">★</span>
+            <span class="star" data-val="5">★</span>
+          </div>
+          <textarea id="rating-comment" class="form-control mb-2" rows="2"
+                    placeholder="Votre commentaire (optionnel)..." style="font-size:.85rem;"></textarea>
+          <button class="btn-cam-primary btn-sm" onclick="submitRating()">
+            <span data-i18n="course.submit_rating">Envoyer la note</span>
+          </button>
+          <div id="rating-msg" class="mt-2" style="font-size:.82rem;"></div>
+        </div>
+
+        <!-- Avis existants -->
+        <div class="bg-white rounded-3 shadow-sm p-3 mb-3">
+          <h6>Avis des apprenants / Learner reviews</h6>
+          <div id="ratings-list"><em style="font-size:.82rem;color:#888;">Aucun avis pour l'instant.</em></div>
+        </div>
+      </div>
+
+      <!-- Colonne droite : liste des modules -->
+      <div class="col-lg-4">
+        <div class="sidebar-section sticky-top" style="top:1rem;">
+          <h6>📚 Contenu du cours</h6>
+          <div id="modules-list">
+            <!-- Rempli dynamiquement -->
+          </div>
+        </div>
+
+        <!-- Formateur -->
+        <div class="sidebar-section mt-3">
+          <h6>👤 Formateur</h6>
+          <div id="instructor-card"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<!-- Modal Signalement -->
+<div class="modal fade" id="reportModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" data-i18n="report.title">Signaler ce cours</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label" data-i18n="report.reason">Motif</label>
+          <select id="report-reason" class="form-select">
+            <option value="spam">Spam</option>
+            <option value="low_quality">Faible qualité / Low quality</option>
+            <option value="factual_error">Erreur factuelle / Factual error</option>
+            <option value="inappropriate">Contenu inapproprié / Inappropriate</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label" data-i18n="report.details">Détails (optionnel)</label>
+          <textarea id="report-details" class="form-control" rows="3"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cam-secondary" data-bs-dismiss="modal" data-i18n="btn.cancel">Annuler</button>
+        <button class="btn-cam-primary" onclick="submitReport()" data-i18n="report.submit">Envoyer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/offline-sync.js"></script>
+<script src="js/api.js"></script>
+<script>
+  const params  = new URLSearchParams(window.location.search);
+  const courseId = params.get('id');
+  let courseData = null;
+  let currentModule = null;
+  let selectedStars = 0;
+
+  if (!courseId) window.location.href = 'index.html';
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    const res = await API.getCourse(courseId);
+    document.getElementById('loading-state').classList.add('d-none');
+    if (!res?.ok) { showToast(window.i18n.t('error.network'), 'error'); return; }
+    courseData = res.data?.data || res.data;
+    renderCourse(courseData);
+    loadRatings();
+  });
+
+  function renderCourse(c) {
+    const lang = window.i18n.lang;
+    document.title = c.title + ' — Réseau Académique Camerounais';
+    document.getElementById('course-title').textContent = c.title;
+    document.getElementById('course-description').textContent = c.description;
+    document.getElementById('instructor-name').textContent =
+      `${c.instructor?.first_name || ''} ${c.instructor?.last_name || ''}`;
+    document.getElementById('course-level').textContent = c.level;
+    document.getElementById('course-lang').textContent =
+      c.language === 'fr' ? 'Français' : c.language === 'en' ? 'English' : 'Bilingue';
+    document.getElementById('course-size').textContent = formatSize(c.total_size_mb || 0);
+    document.getElementById('course-rating').textContent =
+      c.average_rating ? `${c.average_rating.toFixed(1)}/5 (${c.rating_count})` : 'Pas encore noté';
+    document.getElementById('course-enrolled').textContent = c.enrollment_count || 0;
+
+    // Badges
+    const badgesEl = document.getElementById('course-badges');
+    if (c.is_low_bandwidth) badgesEl.innerHTML += '<span class="badge-low-bw badge-rep">📡 Bas débit</span>';
+    if (c.language === 'both') badgesEl.innerHTML += '<span class="badge-rep">🇨🇲 Bilingue</span>';
+    const statusColors = { approved:'#007a3d', pending:'#fd7e14', rejected:'#ce1126', quarantine:'#dc3545' };
+    badgesEl.innerHTML += `<span class="badge-rep" style="background:${statusColors[c.status]||'#666'};color:#fff;">
+      ${c.status}</span>`;
+
+    // Formateur card
+    const instr = c.instructor;
+    if (instr) {
+      document.getElementById('instructor-card').innerHTML = `
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <div class="feed-avatar" style="width:36px;height:36px;font-size:.8rem;">
+            ${instr.first_name?.[0] || '?'}
+          </div>
+          <div>
+            <div style="font-weight:700;font-size:.85rem;">${escHtml(instr.first_name)} ${escHtml(instr.last_name)}</div>
+            <div class="trust-stars" style="font-size:.75rem;">${instr.trust_score_display || '☆'}</div>
+          </div>
+        </div>
+        <p style="font-size:.78rem;color:#666;">${escHtml(instr.bio || '')}</p>
+        <a href="profile.html?id=${instr.id}" class="btn-cam-secondary btn-sm">Voir le profil</a>`;
+    }
+
+    // Modules
+    renderModules(c.modules || []);
+
+    // Si inscrit
+    if (c.is_enrolled) {
+      document.getElementById('enroll-btn').textContent = '✓ Inscrit';
+      document.getElementById('enroll-btn').disabled = true;
+      document.getElementById('progress-section').classList.remove('d-none');
+      document.getElementById('rating-section').classList.remove('d-none');
+      updateOverallProgress(c.modules || []);
+      if ((c.modules || []).length > 0) selectModule(c.modules[0]);
+    }
+
+    document.getElementById('course-main').classList.remove('d-none');
+  }
+
+  function renderModules(modules) {
+    const list = document.getElementById('modules-list');
+    if (!modules.length) {
+      list.innerHTML = '<p style="font-size:.82rem;color:#888;">Aucun module pour l\'instant.</p>';
+      return;
+    }
+    list.innerHTML = modules.map((m, i) => {
+      const prog = m.user_progress || { percentage: 0, completed: false };
+      return `
+      <div class="module-list-item" id="mod-item-${m.id}" onclick="selectModule(${JSON.stringify(m).replace(/"/g,'&quot;')})">
+        <div class="module-progress-circle ${prog.completed ? 'done' : ''}">
+          ${prog.completed ? '✓' : (i + 1)}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            ${escHtml(m.title)}
+          </div>
+          <div style="font-size:.72rem;color:#888;">${m.duration_minutes} min · ${formatSize(m.file_size_mb || 0)}</div>
+          <div class="progress-track mt-1" style="height:3px;">
+            <div class="progress-bar-cam" style="width:${prog.percentage}%;height:3px;"></div>
+          </div>
+        </div>
+        ${m.is_downloadable ? '<span title="Hors ligne disponible" style="font-size:.9rem;">📴</span>' : ''}
+      </div>`;
+    }).join('');
+  }
+
+  function selectModule(m) {
+    currentModule = m;
+    document.querySelectorAll('.module-list-item').forEach(el => el.classList.remove('active'));
+    const el = document.getElementById(`mod-item-${m.id}`);
+    if (el) el.classList.add('active');
+
+    document.getElementById('player-section').classList.remove('d-none');
+    document.getElementById('current-module-title').textContent = m.title;
+
+    const video   = document.getElementById('video-player');
+    const noVideo = document.getElementById('no-video');
+    const pdfLink = document.getElementById('pdf-link');
+    const dlBtn   = document.getElementById('download-btn');
+
+    if (m.video_url) {
+      video.src = m.video_url;
+      video.classList.remove('d-none');
+      noVideo.classList.add('d-none');
+      attachProgressTracking(video, m.id);
+    } else {
+      video.src = '';
+      video.classList.add('d-none');
+      noVideo.classList.remove('d-none');
+      noVideo.style.display = 'flex';
+    }
+
+    if (m.pdf_url) {
+      pdfLink.href = m.pdf_url;
+      pdfLink.classList.remove('d-none');
+    } else {
+      pdfLink.classList.add('d-none');
+    }
+
+    if (m.is_downloadable && Auth.isLoggedIn()) {
+      dlBtn.classList.remove('d-none');
+    } else {
+      dlBtn.classList.add('d-none');
+    }
+  }
+
+  function updateOverallProgress(modules) {
+    if (!modules.length) return;
+    const total = modules.reduce((sum, m) => sum + (m.user_progress?.percentage || 0), 0);
+    const pct = Math.round(total / modules.length);
+    document.getElementById('overall-pct').textContent = pct + '%';
+    document.getElementById('overall-bar').style.width = pct + '%';
+  }
+
+  async function enrollCourse() {
+    if (!Auth.isLoggedIn()) { window.location.href = `login.html?next=course_detail.html?id=${courseId}`; return; }
+    const res = await API.enrollCourse(courseId);
+    if (res?.ok) {
+      showToast(res.data?.message || 'Inscription réussie !');
+      location.reload();
+    } else {
+      showToast(res?.data?.message || window.i18n.t('error.generic'), 'error');
+    }
+  }
+
+  // ── Signalement ─────────────────────────────────────────────────────────────
+  async function submitReport() {
+    if (!Auth.isLoggedIn()) { window.location.href = 'login.html'; return; }
+    const reason  = document.getElementById('report-reason').value;
+    const details = document.getElementById('report-details').value;
+    const res = await API.reportCourse(courseId, reason, details);
+    bootstrap.Modal.getInstance(document.getElementById('reportModal')).hide();
+    showToast(res?.data?.message || (res?.ok ? 'Signalement envoyé.' : window.i18n.t('error.generic')),
+              res?.ok ? 'success' : 'error');
+  }
+
+  // ── Notation ─────────────────────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('#star-rating-input .star').forEach(star => {
+      star.addEventListener('click', () => {
+        selectedStars = +star.dataset.val;
+        document.querySelectorAll('#star-rating-input .star').forEach((s, i) => {
+          s.classList.toggle('active', i < selectedStars);
+        });
+      });
+      star.addEventListener('mouseover', () => {
+        const v = +star.dataset.val;
+        document.querySelectorAll('#star-rating-input .star').forEach((s, i) => {
+          s.classList.toggle('active', i < v);
+        });
+      });
+    });
+    document.getElementById('star-rating-input').addEventListener('mouseleave', () => {
+      document.querySelectorAll('#star-rating-input .star').forEach((s, i) => {
+        s.classList.toggle('active', i < selectedStars);
+      });
+    });
+  });
+
+  async function submitRating() {
+    if (!selectedStars) { showToast('Veuillez choisir une note.', 'warning'); return; }
+    const comment = document.getElementById('rating-comment').value;
+    const res = await API.rateCourse(courseId, selectedStars, comment);
+    const msg = document.getElementById('rating-msg');
+    if (res?.ok) {
+      msg.style.color = '#007a3d';
+      msg.textContent = res.data?.message || 'Note enregistrée. Merci !';
+      loadRatings();
+    } else {
+      msg.style.color = '#ce1126';
+      msg.textContent = res?.data?.message || window.i18n.t('error.generic');
+    }
+  }
+
+  async function loadRatings() {
+    const res = await API.getCourses({});
+    const rRes = await apiFetch ? null : null;
+    // Chargement direct des ratings
+    const r = await fetch(`/api/v1/courses/${courseId}/rate/`, {
+      headers: Auth.getAccessToken() ? { Authorization: `Bearer ${Auth.getAccessToken()}` } : {}
+    });
+    if (!r.ok) return;
+    const data = await r.json();
+    const list = document.getElementById('ratings-list');
+    const ratings = data?.results || data || [];
+    if (!ratings.length) return;
+    list.innerHTML = ratings.slice(0, 5).map(r => `
+      <div class="mb-2 pb-2 border-bottom">
+        <div class="d-flex align-items-center gap-2">
+          <strong style="font-size:.82rem;">${escHtml(r.user?.first_name || '')} ${escHtml(r.user?.last_name || '')}</strong>
+          <span class="trust-stars" style="font-size:.8rem;">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)}</span>
+        </div>
+        ${r.comment ? `<p style="font-size:.78rem;color:#555;margin:.2rem 0 0;">${escHtml(r.comment)}</p>` : ''}
+      </div>`).join('');
+  }
+
+  async function downloadCurrentModule() {
+    if (!currentModule) return;
+    await DownloadedCourses.downloadModule(
+      currentModule.id,
+      currentModule.video_url,
+      currentModule.pdf_url,
+      currentModule.title,
+    );
+  }
+
+  function escHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+</body>
+</html>
